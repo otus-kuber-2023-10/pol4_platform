@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paymentservice
+  labels:
+    app: paymentservice
+  creationTimestamp: null
+
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+     app: paymentservice
+  template:
+    metadata:
+      labels:
+       app: paymentservice
+    spec:
+     containers:
+      - name: pservice
+        image: master:5000/paymentservice:0.02
+#        imagePullPolicy: Never
+        env:
+        - name: PORT
+          value: "50051"
+        - name: DISABLE_TRACING
+          value: "1"
+        - name: DISABLE_PROFILER
+          value: "1"
+        - name: DISABLE_DEBUGGER
+          value: "1"
