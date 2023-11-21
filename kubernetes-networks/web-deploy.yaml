@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: web
+spec:
+   replicas: 3
+   selector: 
+      matchLabels:
+         app: web 
+   strategy:
+      type: RollingUpdate
+      rollingUpdate:
+         maxUnavailable: 100%
+         maxSurge: 100%
+   template:
+      metadata:
+        labels:
+           app: web
+      spec:
+         containers:
+         - name: web-server
+           image: master:5000/simple_web:0.1
+           livenessProbe:
+             tcpSocket:
+               port: 8000
+           readinessProbe:
+             httpGet:
+               path: /index.html
+               port: 8000
+           volumeMounts:
+               - name: shared
+                 mountPath: /app
+
+         initContainers:
+            - name: init4web
+              image: busybox:1.28
+              volumeMounts:
+                 - name: shared
+                   mountPath: /app
+              command: ['sh', '-c', 'wget -O- https://tinyurl.com/otus-k8s-intro | sh']
+
+         volumes:
+            - name: shared
+              emptyDir: { }
