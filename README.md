@@ -112,3 +112,23 @@ ConfigMap из материалов устарела. Конфиг через ki
 3.9 ingress-nginx
 Потребовалось обновить контроллер на кластере.
 
+
+# Выполнено ДЗ №4
+
+4.1 Подготовка
+Данное ДЗ выполнялось на кластере из задания №2
+
+4.2 Установка Minio
+Для работы на кластере требуется наличие PV из подходящего storageclass
+Установил rancher (kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml)
+и пропатчил конфиг чтобы сторедж local-path стал по-умолчанию (kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}')
+
+4.3 Установка StatefulSet minio
+Потребовала изменения конфига чтобы секреты перестали быть обязательными
+
+4.4 Установка хедлес сервиса для доступа
+Создан
+
+4.5
+Требование секретов включено обратно. Секреты прогрожены в Объектное хранилище.
+base64 от minio и minio123
