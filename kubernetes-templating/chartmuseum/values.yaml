@@ -1,0 +1,23 @@
+ingress:
+  enabled: true
+  annotations:
+#    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/issue-temporary-certificate: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/ingress.allow-http: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#    cert-manager.io/issuer: letsencrypt-staging
+    cert-manager.io/issuer: letsencrypt-production
+    cert-manager.io/acme-challenge-type: http01
+
+## Chartmuseum Ingress hostnames
+## Must be provided if Ingress is enabled
+##
+  hosts:
+    - name: chartmuseum.46.138.241.117.nip.io
+      path: /
+      tls: true
+      tlsSecret: chartmuseum.46.138.241.117.nip.io.secret
+  certManager: true

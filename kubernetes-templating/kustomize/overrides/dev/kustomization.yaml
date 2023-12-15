@@ -1,0 +1,9 @@
+resources:
+- ../../base
+namePrefix: dev-
+namespace: hipster-shop-dev
+commonLabels:
+  environment: dev
+
+patchesStrategicMerge:
+- env-dev.yaml

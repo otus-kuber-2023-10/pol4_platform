@@ -178,3 +178,167 @@ Done
 5.10 Дать ken роль view в рамках Namespace dev
 Done
 
+# Выполнено ДЗ №6
+
+6.1 Подготовка
+Данное ДЗ выполнялось на кластере из задания №2
+
+6.2 Установка репозитория stable
+Ссылка уже устарела и nginx-ingress даже из актуальной её версии уже depricated.
+
+Для nginx зарегистрировал актуальный репозиторий
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+
+Неплохо было-бы сделать update после установки новой репы.
+helm repo update
+
+6.3 Установка nginx
+Актуальный ingress-nginx хочет ставиться в ingress-nginx.
+С существующим контроллером, даже при установке в другой неймспейс, конфлифктует.
+Воспользовался стандартной установкой.
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace --wait
+
+Done
+
+6.4 Установка Cert-manager
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm upgrade --install cert-manager jetstack/cert-manager --wait --namespace=cert-manager --set installCRDs=true
+
+Helm самостоятельно создаёт неймспейс и ставит требуемые CRD
+
+#Ожидаемо не находит своих CDR и ждёт.
+#Ставим CRD 
+#kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.crds.yaml
+
+#Обнаружил ресурсы и вышел из wait.
+
+Done
+
+6.5
+Настройка УЦ для Cert-manager.
+Делаем собственный CA.
+Проверяем, что он может подписывать.
+kubectl get clusterissuers
+Message: edu-ca-issuer               True    Signing CA verified
+
+Проверяем, что корневой сертификат сгенерировался нормально.
+kubectl describe certificate -n cert-manager
+
+Normal  Generated  15m   cert-manager-certificates-key-manager      Stored new private key in temporary Secret resource "k8s-edu-ca-6nwdd"
+Normal  Requested  15m   cert-manager-certificates-request-manager  Created new CertificateRequest resource "k8s-edu-ca-1"
+Normal  Issuing    15m   cert-manager-certificates-issuing          The certificate has been successfully issued
+
+Done
+
+В качестве альтерантивы подготовим Letsencrypt Issuer с регистрацией на внешнюю почту
+
+Т.к. на следующих этапах потребуется сервис, торчащий в Интернет, то развернул Metallb, настроил PAT на статическом внешнем адресе.
+
+
+6.6 Установка ChartMuseum
+Репа в методичке устарела.
+Подключаем актуальную.
+helm repo add chartmuseum https://chartmuseum.github.io/charts
+
+Корректируем values.yaml чтобы обеспечить генерацию сертификата по протоколу ACME.
+Устанавливаем chartmuseum
+helm upgrade --install chartmuseum chartmuseum/chartmuseum --wait --namespace=chartmuseum -f ./values.yaml
+
+О чудо! Процесс запрос-ответ для валидации владения сайтом работает по HTTP!!!
+Пришлось добавлять в PAT 80-й порт. 8 часов возни... Очень ценное знание...
+
+Страничка открывается по пути https://chartmuseum.46.138.241.117.nip.io/ с правильным сертификатом.
+
+6.7 Настройка Харбора
+Снова открываю 80 порт.
+
+Добавил репу
+helm repo add harbor https://helm.goharbor.io
+helm repo update
+
+Создал новое неймспейс и добавил туда Issuer
+Корректируем values.yaml
+helm upgrade --install harbor harbor/harbor --wait --namespace=harbor -f ./values.yaml
+
+Для запуска redis и co на кластере требуется наличие PV из подходящего storageclass
+Установил rancher (kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml)
+и пропатчил конфиг чтобы сторедж local-path стал по-умолчанию (kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}')
+
+Ссылка открылась, сертификат с полной цепочкой.
+https://harbor.46.138.241.117.nip.io
+
+6.8 Helmfile
+Собрал
+
+6.9 Создать свой helm chart
+
+helm create kubernetes-templating/hipster-shop
+
+Done
+
+При запуске не удаётся скачать образ gcr.io/google-samples/microservices-demo/adservice:v0.1.3
+Остальное работает, сервисы доступны из браузера.
+
+6.10 Разделить фронтэнд и остальную часть приложения.
+helm create kubernetes-templating/frontend
+
+Done
+
+Отредактировал файлы. Удалил старый неймспейс. Установил новую конфигурацию без фронта.
+
+Done
+
+Создал нового Issuer в неймспейсе hipster-shop
+
+Установил фронт. Сертификат получен. Приложение отзывается на https://shop.46.138.241.117.nip.io/
+
+Done
+
+Шаблонизировал yaml-ы фронта, включил в зависимости основного приложения.
+При обновлении фрон поднялся.
+
+Done
+
+6.11 Установка параметра напрямую.
+helm upgrade --install hipster-shop kubernetes-templating/hipster-shop --namespace=hipster-shop --set frontend.service.NodePort=31234
+
+Не работает. Ошибка в имени параметра. Правильно - nodePort
+
+Done
+
+6.12 Публикация кастомных чартов
+
+Кажется, что к хелму не установлен плагин для пуша чарта. В методичке опять пропущены важные шаги.
+Пойдём другим путём.
+
+Далаем пакеды из фронта и основного прилождения
+
+helm package .
+получаем tgz
+
+Логинимся в харбор
+helm registry login harbor.46.138.241.117.nip.io
+
+Пушим чарты
+helm push hipster-shop-0.1.0.tgz oci://harbor.46.138.241.117.nip.io/library
+Pushed: harbor.46.138.241.117.nip.io/library/hipster-shop:0.1.0
+Digest: sha256:0f4209c7a8ab85fb6b64455d4b32e7af234659359b4f4b5693a03862bb82c033
+
+helm push frontend-0.1.0.tgz oci://harbor.46.138.241.117.nip.io/library
+Pushed: harbor.46.138.241.117.nip.io/library/frontend:0.1.0
+Digest: sha256:f3a003149f93e26c6f9f47c5bd34fbe67dc30791a1dd465d8a386625a3ffea2e
+
+PULL-инг образа обратно 
+helm pull oci://harbor.46.138.241.117.nip.io/library/frontend --version 0.1.0
+helm pull oci://harbor.46.138.241.117.nip.io/library/hipster-shop --version 0.1.0
+
+Установка чарта
+helm upgrade --install hipster-shop oci://harbor.46.138.241.117.nip.io/library/hipster-shop --version 0.1.0 -n hipster-shop
+
+Done
+
+6.13 Всякая шняга для кастомизации.
+Лениво писать. Накопипастил. Вроде завелось.
+
+
