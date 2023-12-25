@@ -312,7 +312,7 @@ Done
 Кажется, что к хелму не установлен плагин для пуша чарта. В методичке опять пропущены важные шаги.
 Пойдём другим путём.
 
-Далаем пакеды из фронта и основного прилождения
+Далаем пакеты из фронта и основного прилождения
 
 helm package .
 получаем tgz
@@ -342,3 +342,55 @@ Done
 Лениво писать. Накопипастил. Вроде завелось.
 
 
+# Выполнено ДЗ №7
+7.1 Подготовка
+Данное ДЗ выполнялось на кластере получившемся в результате выполнения задания №6
+
+7.2 Useless CR
+Done
+
+7.3 Создание CRD
+Интересно, материал из методички вообще хоть кто-то проверял хоть раз?
+По ссылке https://gist.githubusercontent.com/Evgenikk/581fa5bba6d924a3438be1e3d31aa468/raw/417c044e203f378b90ff94eb0103df3f143427b2/bacis_crd.yml
+Лежит кривой файл, который не устанавливается хотябы потому, что указано apiVersion: apiextensions.k8s.io/v1beta1, а не apiVersion: apiextensions.k8s.io/v1
+Что приводит к ошибке - error: resource mapping not found for name: "mysqls.otus.homework" namespace: "" from "./bacis_crd_old.yml": no matches for kind "CustomResourceDefinition" in version "apiextensions.k8s.io/v1beta1"
+
+Исправление первой ошибки приводит ко второй - The CustomResourceDefinition "mysqls.otus.homework" is invalid: spec.versions[0].schema.openAPIV3Schema: Required value: schemas are required
+
+Опять масса потраченного зра времени...
+
+7.4 Добавить проверку полей
+Done
+
+7.5 Подготовка контроллера
+Копирование темплейтов, копипаст кода, запуск - облом.
+
+Надо доставить через pip кроме самого kopf ещё модули kubernetes и jinja2
+
+Что-то запустилось. Висит. По логам не создаются PVC
+Гуглим. Ошибка в темплейтах, создающих PVC.
+с local-path несовместимо такое использование секции selector:
+    matchLabels:
+      pv-usage: "backup-{{ name }}"
+Удаляем.
+
+Делаем докер-образ.
+
+
+7.6 Деплой оператора
+Правим название контейнера.
+Деплоим. Все PV и PVC есть сервисы задеплоились
+
+7.7 Заполняем данными и проверям
+kubectl exec -it $MYSQLPOD -- mysql -potuspassword -e "select * from test;" otus-database
+mysql: [Warning] Using a password on the command line interface can be insecure.
++----+-------------+
+| id | name        |
++----+-------------+
+|  1 | some data   |
+|  2 | some data-2 |
++----+-------------+
+
+7.8 Удалить mysql-instance
+Удалилась и перезапустилась.
+База без изменений
