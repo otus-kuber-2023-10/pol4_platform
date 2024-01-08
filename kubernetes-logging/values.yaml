@@ -1,0 +1,4 @@
+backend:
+type: es
+es:
+host: el-ingest
