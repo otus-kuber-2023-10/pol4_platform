@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-web-deploy
+  namespace: demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-web-app
+  template:
+    metadata:
+      labels:
+        app: nginx-web-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "metrics"
+        prometheus.io/port: "9113"
+    spec:
+      containers:
+      - name: nginx-container
+        image: vpol4mail/otus-2023-10-nginx-server-4promet:0.5
+        ports:
+        - name: nginx-port
+          containerPort: 8080
+      - name: nginx-container-exporter
+        image: 'nginx/nginx-prometheus-exporter:1.0.0'
+        args:
+          - '-nginx.scrape-uri=http://localhost:8080/basic_status'
+        ports:
+        - name: nginx-exp-port
+          containerPort: 9113

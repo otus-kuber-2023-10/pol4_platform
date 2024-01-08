@@ -1,0 +1,18 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: nginx-web-svc
+  namespace: demo
+  labels:
+    app: nginx-web-svc
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx-web-app
+  ports:
+  - name: nginx-port
+    port: 8080
+  - name: nginx-exp-port
+    port: 9113
+
+
